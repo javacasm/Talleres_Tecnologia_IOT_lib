@@ -6,9 +6,9 @@
 
 LiquidCrystal_I2C lcd(0x27,16,2); // Cambiamos la direccion
 
-DHT dht16(D6,DHT22);
+DHT dht16(D6,DHT22);    // Conectamos el sensor DHT al pin D6
 
-int iNumeroConexiones = 0;
+int iNumeroConexiones = 0;  // Guardamos las conexiones web que se han hecho
 
 WiFiServer server(80);
 
@@ -27,7 +27,7 @@ void setup()
 
    WiFi.begin("SmartCities","CitiesSmart17");
   while (((WiFi.status() == WL_CONNECTED) != true)){
-    Serial.print(".");
+    Serial.print(".");  // imprimimos "." hasta que se conecte al wifi
     delay(200);
 
   }
@@ -35,6 +35,8 @@ void setup()
   Serial.println("");
   Serial.print("IP:");
   Serial.println((WiFi.localIP().toString()));
+  lcd.print((WiFi.localIP().toString()));
+  delay(1000); // Mostramos la ip durante 1 segundo
   server.begin();
 
   temperatura = dht16.readTemperature( );
@@ -56,17 +58,27 @@ void showTemperatura(){
     lcd.print("Conexiones:");
     lcd.print(iNumeroConexiones);
     
-    Serial.println(temperatura);
-    Serial.print(iNumeroConexiones);
-    Serial.println(" conexiones");
+    Serial.print(temperatura);
+    Serial.print(",");
+    Serial.print(humedad);
+    Serial.print(",");
+    Serial.println(iNumeroConexiones));
 }
 
 void loop()
 {
 
    WiFiClient client = server.available();
-    if (!client) { return; }
-    while(!client.available()){  delay(1); }
+    if (!client) {   // Si no hay clientes conectados actualizamos los datos
+      temperatura = int(dht16.readTemperature( ));
+      humedad = dht16.readHumidity();
+      showTemperatura();
+      delay(200); 
+      return; 
+    }
+    while(!client.available()){  
+		delay(1); 
+	}
     client.println("HTTP/1.1 200 OK");
     client.println("Content-Type: text/html");
     client.println("");
@@ -98,7 +110,4 @@ void loop()
     delay(200);
    // client.stop();
     delay(100);
-    
-    temperatura = int(dht16.readTemperature( ));
-    showTemperatura();
 }
